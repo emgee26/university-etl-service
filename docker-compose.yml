@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  university-etl:
+    build: .
+    container_name: university-etl-service
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=info
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # A reverse proxy (nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: university-etl-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - university-etl
+    restart: unless-stopped
+    profiles:
+      - with-nginx
+
+volumes:
+  data:
+  logs:
